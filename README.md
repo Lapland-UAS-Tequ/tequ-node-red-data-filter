@@ -7,7 +7,7 @@ Filters data based on value change limit of target value. Timeout can be configu
 
 Run the following command in your Node-RED user directory - typically `~/.node-red`
 
-        npm install Lapland-UAS-Tequ/tequ-node-red-data-filter
+        npm install tequ-node-red-data-filter
 
 ## Information
 
@@ -21,3 +21,5 @@ Parameters set in input msg will override node config values.
 - msg.deviceId (string)
 - msg.deviceType (string)
 - msg.topic (string)
+
+Note! Topic value should be unique and JSON compatible. It is used as key name in JSON structure to save values in memory buffer.
