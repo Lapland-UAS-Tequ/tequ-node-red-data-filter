@@ -117,7 +117,7 @@
             }
         },
         {
-            "name": "enable_zero_filter",
+            "name": "zero_filter",
             "type": "bool",
             "value": "true"
         }
