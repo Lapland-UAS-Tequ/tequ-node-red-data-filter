@@ -2,7 +2,7 @@
     "id": "2814481313e1abc6",
     "type": "subflow",
     "name": "Data filter",
-    "info": "Filters data based on value change limit of target value. Timeout can be configured to set regular value updates.\n\nExpects following fields set in 'msg' or in node config.\nParameters set in input msg will override node config values.\n- msg.target (string, 'msg.payload.d.temperature.v')\n- msg.value_change_limit (number, 0-1000000, 0=every value change)\n- msg.timeout (number, minutes 0-120)\n- msg.deviceId (string)\n- msg.deviceType (string)\n- msg.topic (string)\n\nNote! Topic value should be unique and JSON compatible. It is used as key name in JSON structure to save values in memory buffer.",
+    "info": "Filters data based on value change limit of target value. Timeout can be configured to set regular value updates.\n\nExpects following fields set in 'msg' or in node config.\nParameters set in input msg will override node config values.\n- msg.target (string, 'msg.payload.d.temperature.v')\n- msg.value_change_limit (number, 0-1000000, 0=every value change)\n- msg.timeout (number, seconds 0-120)\n- msg.deviceId (string)\n- msg.deviceType (string)\n- msg.topic (string)",
     "category": "Tequ-API Client",
     "in": [
         {
@@ -10,14 +10,14 @@
             "y": 80,
             "wires": [
                 {
-                    "id": "2c0dca4ee35f6feb"
+                    "id": "6baf547fe30b5adc"
                 }
             ]
         }
     ],
     "out": [
         {
-            "x": 540,
+            "x": 580,
             "y": 80,
             "wires": [
                 {
@@ -62,15 +62,15 @@
         {
             "name": "timeout",
             "type": "num",
-            "value": "5",
+            "value": "15",
             "ui": {
                 "label": {
-                    "en-US": "Timeout (mins)"
+                    "en-US": "Timeout (secs)"
                 },
                 "type": "spinner",
                 "opts": {
                     "min": 1,
-                    "max": 120
+                    "max": 10800
                 }
             }
         },
@@ -119,17 +119,33 @@
         {
             "name": "zero_filter",
             "type": "bool",
-            "value": "true"
+            "value": "false",
+            "ui": {
+                "type": "input",
+                "opts": {
+                    "types": [
+                        "bool"
+                    ]
+                }
+            }
         },
         {
             "name": "logging",
             "type": "bool",
-            "value": "false"
+            "value": "true",
+            "ui": {
+                "type": "input",
+                "opts": {
+                    "types": [
+                        "bool"
+                    ]
+                }
+            }
         }
     ],
     "meta": {
         "module": "tequ-node-red-data-filter",
-        "version": "0.0.1",
+        "version": "0.0.2",
         "author": "juha.autioniemi@lapinamk.fi",
         "desc": "Filters data based on value change limit of target value. Timeout can be configured to set regular value updates.",
         "license": "MIT"
@@ -137,7 +153,7 @@
     "color": "#3FADB5",
     "icon": "node-red/rbe.png",
     "status": {
-        "x": 540,
+        "x": 580,
         "y": 160,
         "wires": [
             {
@@ -152,14 +168,14 @@
             "type": "function",
             "z": "2814481313e1abc6",
             "name": "Data filter",
-            "func": "let value_change_limit;\nconst d = new Date();\nlet current_time = d.toTimeString().split(\" \")[0];\nlet zero_filter = env.get(\"zero_filter\")\nlet logging = env.get(\"logging\")\n\nif('value_change_limit' in msg){\n    value_change_limit = msg.value_change_limit;\n    if( typeof value_change_limit == 'number' ){\n        //OK    \n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | value_change_limit is not a number.\"});  \n        throw new Error(\"Parameter 'value_change_limit' is not a number!\");\n    }\n}\nelse{\n    value_change_limit = env.get(\"value_change_limit\");   \n}\n\nlet timeout_target;\n\nif('timeout' in msg){\n    timeout_target = msg.timeout_target;\n    if( typeof timeout_target == 'number' ){\n        //OK\n        timeout_target = timeout_target * 60 * 1000\n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | timeout_target is not a number.\"});  \n        throw new Error(\"Parameter 'timeout_target' is not a number!\");\n    }\n    \n    \n}\nelse{\n    timeout_target = env.get(\"timeout\") * 60 * 1000; \n}\n\n//let target_value = msg.payload.d[\"4\"][\"3\"].v\nlet deviceId = \"\";\nlet deviceType = \"\";\nlet topic = \"\";\nlet target = \"\";\nlet target_value;\n\ntry{\n    if('target' in msg){\n        target = (msg.target).split('.')    \n    }\n    else{\n        target = (env.get(\"target\")).split('.')    \n    }\n}\ncatch(e){\n    throw new Error(\"Variable target [\"+target+\"] is unsupported\");\n}\n\nlet size = target.length;\n\ntry{\n    if(size == 0){\n       target_value = msg.payload    \n    }\n    else if(size == 1){\n       target_value = msg.payload    \n    }\n    else if(size == 2){\n       target_value = msg[target[1]];    \n    }\n    else if(size == 3){\n       target_value = msg[target[1]][target[2]];    \n    }\n    else if(size == 4){\n       target_value = msg[target[1]][target[2]][target[3]];    \n    }\n    else if(size == 5){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]];    \n    }\n    else if(size == 6){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]];    \n    }\n    else if(size == 7){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]][target[6]];    \n    }\n    else if(size == 8){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]][target[6]][target[7]];    \n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | unsupported JSON path\"});  \n        throw new Error(\"Target JSON path is missing or it is too long.\");\n    }\n}\ncatch(e){\n     node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | target is malformed\"});  \n        throw new Error(\"Target: \"+target+\" is malformed\");\n}\n\n// Check if target value is a number\nif ( typeof target_value == 'number' ) {\n        //OK     \n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | target is not a number.\"});  \n    throw new Error(\"Parameter 'target' is not a number!\");\n}\n\n//Check parameters from input message\nif ( \"deviceId\" in msg ) {\n    deviceId = msg.deviceId;     \n}\nelse if (env.get(\"deviceId\").length > 0){\n    deviceId = env.get(\"deviceId\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | msg.deviceId is not configured\"});  \n    throw new Error(\"parameter 'deviceId' msg.deviceId is not configured\");\n}\n\n//if ( \"time\" in msg ) {\n    //OK     \n//}\n//else{\n//    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | msg.time missing from input msg\"});  \n//    throw new Error(\"parameter 'time' is missing from input msg\");\n//}\n\nif ( \"topic\" in msg ) {\n    topic = msg.topic;\n    //OK     \n}\nelse if(env.get(\"topic\").length > 0){\n    topic = env.get(\"topic\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | topic is not configured.\"});  \n    throw new Error(\"parameter 'topic' is not configured\");\n}\n\nif ( \"deviceType\" in msg ) {\n    deviceType = msg.deviceType;\n    //OK     \n}\nelse if(env.get(\"deviceType\").length > 0){\n    deviceType = env.get(\"deviceType\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | deviceType is not configured.\"});  \n    throw new Error(\"parameter 'deviceType' is not configured\");\n}\n\nlet previous_update = context.get(topic+\"_\"+\"previous_update\") || 0 \nlet previous_target_value = context.get(topic+\"_\"+\"previous_target_value\") || 0 \nlet time_diff = new Date().getTime() - previous_update;\nlet timeout = false\nlet valueChanged = false\nlet everyValueChanged = false\nlet negative_time = false;\n//let timeout_target= (60 * 1000 * 5)\nlet time_left = Math.round((parseInt(timeout_target) - parseInt(time_diff)) / 1000)\n\n//time_left: \"+time_left)\n\n//Update if target value has changed more than value_change_limit\nif(value_change_limit == 0){\n    if(target_value !== previous_target_value){\n        everyValueChanged = true\n        context.set(topic+\"_\"+\"previous_update\",new Date().getTime())\n    }\n    // Update at least every timeout minutes\n    else if (time_diff > timeout_target) {\n        if (zero_filter) {\n            if (target_value !== 0) {\n                timeout = true\n                context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n            }\n        }\n        else {\n            timeout = true\n            context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n        }\n    }       \n}\nelse{\n    if(Math.abs(Math.abs(target_value) - Math.abs(previous_target_value)) > value_change_limit){\n        valueChanged = true\n        context.set(topic+\"_\"+\"previous_update\",new Date().getTime())\n    }\n    // Update at least every timeout minutes\n    else if(time_diff > timeout_target ){\n        if (zero_filter){\n            if (target_value !== 0) {\n                timeout = true\n                context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n            }\n        }\n        else{\n            timeout = true\n            context.set(topic + \"_\" + \"previous_update\", new Date().getTime())    \n        }\n    }    \n}\n\n\nif(time_left < 0){\n    negative_time = true\n    context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n}\n\n\ncontext.set(topic+\"_\"+\"previous_target_value\",target_value)\n\nif(valueChanged){\n    msg.filter_event = \"valueChanged\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Value changed over \"+value_change_limit});  \n    return msg;\n}\nelse if(everyValueChanged){\n    msg.filter_event = \"everyValueChanged\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Value changed\"});  \n    return msg;\n}\nelse if(timeout){\n    msg.filter_event = \"timeout\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Timeout: \"+parseInt(time_diff/1000)+\" s\"});    \n    return msg;\n}\nelse if(negative_time) {\n    msg.filter_event = \"negative_time\"\n    node.status({ fill: \"blue\", shape: \"dot\", text: current_time + \" | \" + deviceId + \" | Neg time: \" + time_diff });\n    return msg;\n}\nelse{\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Timeout in:\"+time_left+\" s..\"});    \n    return null\n}",
+            "func": "let value_change_limit;\nconst d = new Date();\nlet current_time = d.toTimeString().split(\" \")[0];\nlet zero_filter = env.get(\"zero_filter\")\nlet logging = env.get(\"logging\")\n\nif('value_change_limit' in msg){\n    value_change_limit = msg.value_change_limit;\n    if( typeof value_change_limit == 'number' ){\n        //OK    \n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | value_change_limit is not a number.\"});  \n        throw new Error(\"Parameter 'value_change_limit' is not a number!\");\n    }\n}\nelse{\n    value_change_limit = env.get(\"value_change_limit\");   \n}\n\nlet timeout_target;\n\nif('timeout' in msg){\n    timeout_target = msg.timeout_target;\n    if( typeof timeout_target == 'number' ){\n        //OK\n        timeout_target = timeout_target * 1000\n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | timeout_target is not a number.\"});  \n        throw new Error(\"Parameter 'timeout_target' is not a number!\");\n    }\n    \n    \n}\nelse{\n    timeout_target = env.get(\"timeout\") * 1000; \n}\n\n//let target_value = msg.payload.d[\"4\"][\"3\"].v\nlet deviceId = \"\";\nlet deviceType = \"\";\nlet topic = \"\";\nlet target = \"\";\nlet target_value;\n\ntry{\n    if('target' in msg){\n        target = (msg.target).split('.')    \n    }\n    else{\n        target = (env.get(\"target\")).split('.')    \n    }\n}\ncatch(e){\n    throw new Error(\"Variable target [\"+target+\"] is unsupported\");\n}\n\nlet size = target.length;\n\ntry{\n    if(size == 0){\n       target_value = msg.payload    \n    }\n    else if(size == 1){\n       target_value = msg.payload    \n    }\n    else if(size == 2){\n       target_value = msg[target[1]];    \n    }\n    else if(size == 3){\n       target_value = msg[target[1]][target[2]];    \n    }\n    else if(size == 4){\n       target_value = msg[target[1]][target[2]][target[3]];    \n    }\n    else if(size == 5){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]];    \n    }\n    else if(size == 6){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]];    \n    }\n    else if(size == 7){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]][target[6]];    \n    }\n    else if(size == 8){\n       target_value = msg[target[1]][target[2]][target[3]][target[4]][target[5]][target[6]][target[7]];    \n    }\n    else{\n        node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | unsupported JSON path\"});  \n        throw new Error(\"Target JSON path is missing or it is too long.\");\n    }\n}\ncatch(e){\n     node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | target is malformed\"});  \n        throw new Error(\"Target: \"+target+\" is malformed\");\n}\n\n// Check if target value is a number\nif ( typeof target_value == 'number' ) {\n        //OK     \n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | target is not a number.\"});  \n    throw new Error(\"Parameter 'target' is not a number!\");\n}\n\n//Check parameters from input message\nif ( \"deviceId\" in msg ) {\n    deviceId = msg.deviceId;     \n}\nelse if (env.get(\"deviceId\").length > 0){\n    deviceId = env.get(\"deviceId\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | msg.deviceId is not configured\"});  \n    throw new Error(\"parameter 'deviceId' msg.deviceId is not configured\");\n}\n\n//if ( \"time\" in msg ) {\n    //OK     \n//}\n//else{\n//    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | msg.time missing from input msg\"});  \n//    throw new Error(\"parameter 'time' is missing from input msg\");\n//}\n\nif ( \"topic\" in msg ) {\n    topic = msg.topic;\n    //OK     \n}\nelse if(env.get(\"topic\").length > 0){\n    topic = env.get(\"topic\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | topic is not configured.\"});  \n    throw new Error(\"parameter 'topic' is not configured\");\n}\n\nif ( \"deviceType\" in msg ) {\n    deviceType = msg.deviceType;\n    //OK     \n}\nelse if(env.get(\"deviceType\").length > 0){\n    deviceType = env.get(\"deviceType\")\n}\nelse{\n    node.status({fill:\"red\",shape:\"dot\",text:current_time + \" | deviceType is not configured.\"});  \n    throw new Error(\"parameter 'deviceType' is not configured\");\n}\n\nlet previous_update = context.get(topic+\"_\"+\"previous_update\") || 0 \nlet previous_target_value = context.get(topic+\"_\"+\"previous_target_value\") || 0 \nlet time_diff = new Date().getTime() - previous_update;\nlet timeout = false\nlet valueChanged = false\nlet everyValueChanged = false\nlet negative_time = false;\n//let timeout_target= (60 * 1000 * 5)\nlet time_left = Math.round((parseInt(timeout_target) - parseInt(time_diff)) / 1000)\n\n//time_left: \"+time_left)\n\n//Update if target value has changed more than value_change_limit\nif(value_change_limit == 0){\n    if(target_value !== previous_target_value){\n        everyValueChanged = true\n        context.set(topic+\"_\"+\"previous_update\",new Date().getTime())\n    }\n    // Update at least every timeout minutes\n    else if (time_diff > timeout_target) {\n        if (zero_filter) {\n            if (target_value !== 0) {\n                timeout = true\n                context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n            }\n        }\n        else {\n            timeout = true\n            context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n        }\n    }       \n}\nelse{\n    if(Math.abs(Math.abs(target_value) - Math.abs(previous_target_value)) > value_change_limit){\n        valueChanged = true\n        context.set(topic+\"_\"+\"previous_update\",new Date().getTime())\n    }\n    // Update at least every timeout minutes\n    else if(time_diff >= timeout_target ){\n        if (zero_filter){\n            if (target_value !== 0) {\n                timeout = true\n                context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n            }\n        }\n        else{\n            timeout = true\n            context.set(topic + \"_\" + \"previous_update\", new Date().getTime())    \n        }\n    }    \n}\n\n\nif(time_left < 0){\n    negative_time = true\n    context.set(topic + \"_\" + \"previous_update\", new Date().getTime())\n}\n\n\ncontext.set(topic+\"_\"+\"previous_target_value\",target_value)\n\nif(valueChanged){\n    msg.filter_event = \"valueChanged\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Value changed over \"+value_change_limit});  \n    return msg;\n}\nelse if(everyValueChanged){\n    msg.filter_event = \"everyValueChanged\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Value changed\"});  \n    return msg;\n}\nelse if(timeout){\n    msg.filter_event = \"timeout\"\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Timeout: \"+parseInt(time_diff/1000)+\" s\"});    \n    return msg;\n}\nelse if(negative_time) {\n    msg.filter_event = \"negative_time\"\n    node.status({ fill: \"blue\", shape: \"dot\", text: current_time + \" | \" + deviceId + \" | Neg time: \" + time_diff });\n    return msg;\n}\nelse{\n    node.status({fill:\"blue\",shape:\"dot\",text:current_time+\" | \"+deviceId+\" | Timeout in:\"+time_left+\" s..\"});    \n    return null\n}",
             "outputs": 1,
             "timeout": "",
             "noerr": 0,
             "initialize": "",
             "finalize": "",
             "libs": [],
-            "x": 360,
+            "x": 280,
             "y": 80,
             "wires": [
                 []
@@ -171,35 +187,21 @@
             "z": "2814481313e1abc6",
             "name": "",
             "scope": null,
-            "x": 360,
+            "x": 280,
             "y": 160,
             "wires": [
                 []
             ]
         },
         {
-            "id": "2c0dca4ee35f6feb",
-            "type": "moment",
-            "z": "2814481313e1abc6",
-            "name": "ts",
-            "topic": "",
-            "input": "",
-            "inputType": "date",
-            "inTz": "Europe/Helsinki",
-            "adjAmount": 0,
-            "adjType": "days",
-            "adjDir": "add",
-            "format": "HH:mm:ss",
-            "locale": "en-US",
-            "output": "time",
-            "outputType": "msg",
-            "outTz": "Europe/Helsinki",
-            "x": 210,
-            "y": 80,
+            "id": "725335afdf10c019",
+            "type": "subflow:2814481313e1abc6",
+            "z": "debe57df1350b9f8",
+            "name": "",
+            "x": 500,
+            "y": 1280,
             "wires": [
-                [
-                    "6baf547fe30b5adc"
-                ]
+                []
             ]
         }
     ]
